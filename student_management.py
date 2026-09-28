@@ -5,11 +5,11 @@ from pydantic import BaseModel, EmailStr, Field
 app = FastAPI(title="Student Management API")
 
 
-# -----------------------------
-# Pydantic Models
-# -----------------------------
+# =====================================================
+# PYDANTIC MODELS
+# =====================================================
 
-# Used when creating/updating a student
+# Used for creating and updating a student
 class StudentCreate(BaseModel):
     name: str = Field(..., min_length=1)
     email: EmailStr
@@ -17,23 +17,23 @@ class StudentCreate(BaseModel):
     age: int
 
 
-# Used for the response
+# Used for API responses
 class Student(StudentCreate):
     id: int
 
 
-# -----------------------------
-# In-memory database
-# -----------------------------
+# =====================================================
+# IN-MEMORY DATABASE
+# =====================================================
 
 students = []
 
 next_id = 1
 
 
-# -----------------------------
-# POST - Create Student
-# -----------------------------
+# =====================================================
+# POST - CREATE STUDENT
+# =====================================================
 
 @app.post(
     "/students",
@@ -44,6 +44,17 @@ def create_student(student_data: StudentCreate):
 
     global next_id
 
+    # Check if student already exists
+    for student in students:
+
+        if student.email.lower() == student_data.email.lower():
+
+            raise HTTPException(
+                status_code=400,
+                detail="Student already exists"
+            )
+
+    # Create new student
     student = Student(
         id=next_id,
         **student_data.model_dump()
@@ -56,9 +67,9 @@ def create_student(student_data: StudentCreate):
     return student
 
 
-# -----------------------------
-# GET - Get All Students
-# -----------------------------
+# =====================================================
+# GET - GET ALL STUDENTS
+# =====================================================
 
 @app.get(
     "/students",
@@ -69,10 +80,11 @@ def get_students():
     return students
 
 
-# -----------------------------
-# GET - Search Students by Course
-# IMPORTANT: This must come BEFORE /students/{student_id}
-# -----------------------------
+# =====================================================
+# GET - SEARCH STUDENTS BY COURSE
+# IMPORTANT:
+# This route must come BEFORE /students/{student_id}
+# =====================================================
 
 @app.get(
     "/students/search",
@@ -85,14 +97,15 @@ def search_students(course: str):
     for student in students:
 
         if course.lower() in student.course.lower():
+
             result.append(student)
 
     return result
 
 
-# -----------------------------
-# GET - Get Student by ID
-# -----------------------------
+# =====================================================
+# GET - GET STUDENT BY ID
+# =====================================================
 
 @app.get(
     "/students/{student_id}",
@@ -103,6 +116,7 @@ def get_student(student_id: int):
     for student in students:
 
         if student.id == student_id:
+
             return student
 
     raise HTTPException(
@@ -111,9 +125,9 @@ def get_student(student_id: int):
     )
 
 
-# -----------------------------
-# PUT - Update Student
-# -----------------------------
+# =====================================================
+# PUT - UPDATE STUDENT
+# =====================================================
 
 @app.put(
     "/students/{student_id}",
@@ -128,6 +142,21 @@ def update_student(
 
         if student.id == student_id:
 
+            # Check if email belongs to another student
+            for existing_student in students:
+
+                if (
+                    existing_student.email.lower()
+                    == student_data.email.lower()
+                    and existing_student.id != student_id
+                ):
+
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Email already exists"
+                    )
+
+            # Create updated student
             updated_student = Student(
                 id=student_id,
                 **student_data.model_dump()
@@ -143,9 +172,9 @@ def update_student(
     )
 
 
-# -----------------------------
-# DELETE - Delete Student
-# -----------------------------
+# =====================================================
+# DELETE - DELETE STUDENT
+# =====================================================
 
 @app.delete("/students/{student_id}")
 def delete_student(student_id: int):
