@@ -33,7 +33,6 @@ This project demonstrates **CRUD operations, Pydantic validation, HTTP methods, 
 student-management-api/
 │
 ├── student_management.py
-├── requirements.txt
 └── README.md
 ```
 
